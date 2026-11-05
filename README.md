@@ -10,8 +10,9 @@ Confronto tra modello standard (ERM) e modello robusto (*adversarial training* c
 
 ## Documenti
 
-- **Relazione tecnica**: [`REPORT.md`](REPORT.md)
-- **Presentazione**: [`presentazione.pdf`](presentazione.pdf)
+- **Relazione tecnica (PDF)**: [`REPORT.pdf`](REPORT.pdf)
+- **Relazione in inglese (PDF)**: [`ENGLISH_REPORT.pdf`](ENGLISH_REPORT.pdf)
+- **Presentazione (PDF)**: [`presentazione.pdf`](presentazione.pdf)
 
 ## Setup
 

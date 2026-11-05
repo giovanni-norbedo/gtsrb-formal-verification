@@ -4,8 +4,6 @@
 **Student**: Giovanni Norbedo (Student ID: SM3201486)  
 University of Trieste  
 
----
-
 ## Introduction and objectives
 
 Neural networks trained with standard Empirical Risk Minimization (ERM) often achieve high test accuracy, yet remain fragile in the presence of adversarial attacks: imperceptible pixel-level perturbations are sufficient to trigger catastrophic classification failures. In safety-critical domains such as autonomous driving, where visual perception systems must recognize traffic signs in real time, this vulnerability constitutes an unacceptable risk.
@@ -18,18 +16,7 @@ In this project, I compared two neural networks sharing an identical architectur
 
 ### Code structure and control variables
 
-The entire experimental pipeline is self-contained and reproducible within the notebook [`main.ipynb`](main.ipynb). To allow immediate inspection of the results using the saved model weights and JSON files, or alternatively to retrain and re-verify everything from scratch, four boolean flags are defined at the top of the notebook:
-
-```python
-RETRAIN_STANDARD = False    # True: retrain standard model (30 epochs)
-RETRAIN_ROBUST = False      # True: retrain robust model (mixed AT, 30 epochs)
-RETRAIN_PGD_CURVES = False  # True: recalculate empirical PGD curves (1,250 images)
-RETRAIN_MARABOU = False     # True: re-run Marabou SMT formal verification (250 samples)
-```
-
-All figures included in this report are generated and saved at high resolution in the `images/` directory directly by running the notebook cells.
-
----
+The entire experimental pipeline is self-contained and reproducible within the notebook [`main.ipynb`](main.ipynb). To allow immediate inspection of the results using the saved model weights and JSON files, or alternatively to retrain and re-verify everything from scratch, four boolean control flags (`RETRAIN_STANDARD`, `RETRAIN_ROBUST`, `RETRAIN_PGD_CURVES`, and `RETRAIN_MARABOU`) are defined at the beginning of the notebook. All figures included in this report are generated and saved at high resolution in the `images/` directory directly by running the notebook cells.
 
 ## Dataset and preprocessing
 
@@ -37,7 +24,7 @@ All figures included in this report are generated and saved at high resolution i
 The raw data originates from the official GTSRB dataset (`train.parquet` containing 39,209 images and `test.parquet` with 12,630 images). To define a realistic yet computationally tractable task for an exact SMT solver, I selected five classes with distinct operational and safety meanings in real-world traffic:
 
 | Index | GTSRB ID | Sign Name | Traffic Meaning |
-|:---:|:---:|---|---|
+|:--------:|:----------:|:--------------------------:|:--------------------------------------------------|
 | **0** | 14 | STOP | Mandatory stop at intersection |
 | **1** | 13 | Priority / Yield | Yield right of way |
 | **2** | 1 | Speed Limit 30 km/h | Residential or reduced speed zone |
@@ -54,8 +41,6 @@ To eliminate this methodological pitfall, I partitioned the dataset strictly at 
 ### ROI cropping and normalization
 Raw traffic signs have variable resolutions and contain substantial portions of background scenery. To isolate the sign and standardize the input, each image is first cropped using the annotated Region of Interest (ROI) bounding box coordinates `[Roi.X1, Roi.Y1, Roi.X2, Roi.Y2]`, converted to single-channel grayscale, and resized to a fixed resolution of $28 \times 28$ pixels via bilinear interpolation. Pixel intensities are then normalized to the continuous range $[0.0, 1.0]$, representing each input as a compact vector $x \in [0, 1]^{784}$.
 
----
-
 ## Architecture and integration with Marabou
 
 Exact SMT solvers such as Marabou operate natively on piecewise-linear constraints. Continuous non-linear activation functions such as Sigmoid, Tanh, or GELU, as well as complex pooling operations, cannot be directly handled by the Simplex engine and would require loose approximations.
@@ -67,8 +52,6 @@ The architecture has a total of 52,485 trainable parameters ($784 \times 64 + 64
 
 A key architectural design choice for solver integration is exporting the network to ONNX without the final Softmax operator. Because the Softmax function is strictly monotonically increasing, the index of the highest probability is identical to the index of the highest raw logit: $\arg\max_i \text{softmax}(z)_i = \arg\max_i z_i$. Eliminating the exponential term of Softmax allows Marabou to formulate the misclassification condition as a direct set of linear inequalities between the logit of an erroneous target class $t$ and the logit of the ground truth class $y_0$:
 $$\text{logit}[t] - \text{logit}[y_0] \ge 10^{-4} \quad (t \ne y_0)$$
-
----
 
 ## Adversarial attacks and training
 
@@ -89,15 +72,13 @@ For the robust model, I implemented a *mixed adversarial training* protocol, min
 $$\mathcal{L}_{\text{tot}} = 0.4 \cdot \mathcal{L}(f(x), y) + 0.6 \cdot \mathcal{L}(f(x_{\text{adv}}), y)$$
 The adversarial counterpart $x_{\text{adv}}$ is generated online for each mini-batch using 7-step PGD with radius $\epsilon=0.05$ and step size $\alpha=0.012$. Retaining a non-zero weight on clean samples prevents the network from suffering severe accuracy degradation on unperturbed nominal inputs.
 
----
-
 ## Empirical experimental results
 
 ### Accuracy under PGD attack across $\epsilon$ ($N=1,250$)
 I evaluated both models on the independent test set of 1,250 images across a grid of increasing perturbation radii $\epsilon$, aligned with the values subsequently used for formal verification:
 
 | Epsilon $\epsilon$ | Standard model | Robust model | Net advantage ($+\Delta$) |
-|:---:|:---:|:---:|:---:|
+|:------------------:|:----------------:|:---------------:|:---------------------:|
 | **0.00 (clean)** | 94.08% | 93.28% | -0.80% |
 | **0.01** | 76.64% | 88.24% | +11.60% |
 | **0.02** | 60.00% | 84.24% | +24.24% |
@@ -117,8 +98,6 @@ On clean samples, both networks exhibit a dominant, well-balanced diagonal, with
 
 Under PGD at $\epsilon=0.05$, the standard model's classification structure degrades substantially: recognition of the STOP sign collapses, being misclassified as Yield in 32% of cases and as Speed Limit 50 in 24% of cases, alongside severe mutual confusion between Speed Limit 30 and Speed Limit 50. In contrast, the robust model maintains a dominant diagonal across all classes, correctly classifying the STOP sign 81% of the time even under the strongest attack.
 
----
-
 ## Formal verification with Marabou SMT
 
 ### Formulation of the verification problem
@@ -136,7 +115,7 @@ An image is formally certified robust if and only if the network classifies it c
 I conducted formal verification on a balanced sample of 250 test images (50 per class, representing exactly one-fifth of the test set), parallelizing execution across 8 worker processes. To maintain mathematical soundness for the certified lower bound, any sample incurring a timeout on even a single competing class is treated as uncertified:
 
 | Radius $\epsilon$ | Standard: certified | Robust: certified | Net gain | Timeout standard | Timeout robust | Avg time (robust) |
-|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+|:--------:|:--------------:|:--------------:|:------------:|:------------:|:------------:|:--------------:|
 | **0.00** | 94.8% | 94.0% | -0.8% | 0.0% | 0.0% | 0.00 s |
 | **0.01** | 76.4% | 88.8% | +12.4% | 0.4% | 0.0% | 0.04 s |
 | **0.02** | 58.0% | 82.4% | +24.4% | 3.6% | 4.0% | 0.09 s |
@@ -176,15 +155,11 @@ To model this setting in Marabou, I defined a central patch of $6 \times 6$ pixe
 
 The verification outcome shows a stark contrast. On the standard model, Marabou returns `SAT` in just 0.17 seconds, synthesizing a specific patch that misleads the network into predicting Speed Limit 30. On the robust model, Marabou returns `UNSAT` in 1.80 seconds: this provides absolute mathematical proof that within that central $6 \times 6$ area, no possible physical sticker (regardless of color or pattern) can cause the robust network to misclassify the sign.
 
----
-
 ## Limitations and future directions
 
 Exact formal verification entails practical computational trade-offs. Relying on a multilayer perceptron on $28 \times 28$ grayscale images was a deliberate design choice to keep SMT solving times tractable. Real-world perception systems rely on deep convolutional architectures or vision transformers, for which complete exact SMT verification is currently prohibitive due to the exponential branching complexity of ReLU activations.
 
 To scale formal guarantees to larger models, a promising avenue is incomplete verification based on convex relaxations (such as CROWN or DeepPoly). These methods operate in polynomial time and, while introducing a modest rate of false alarms, guarantee zero false negatives. Finally, dense models lack inherent translation and rotation invariance: in operational deployment, precise ROI cropping and geometric normalization remain essential prerequisites.
-
----
 
 ## Conclusions
 
@@ -192,12 +167,9 @@ This work demonstrates that adversarial training does not merely provide heurist
 
 Simultaneously, the findings underscore why empirical testing is insufficient for safety-critical systems: gradient-based searches can leave vulnerable regions undetected that only a deterministic solver will uncover. Although combinatorial complexity currently restricts exact verification to compact components or relaxed approximations, formal methods provide an indispensable framework for certifying the reliability of neural vision systems in autonomous driving.
 
----
-
 ## References
 
 - **A. Albarghouthi (2021)**: *Introduction to Neural Network Verification*, Foundations and Trends in Programming Languages ([arXiv:2109.10317](https://arxiv.org/abs/2109.10317))
 - **H. Wu et al. (CAV 2024)**: *Marabou 2.0: A Versatile Formal Analyzer of Neural Networks* ([arXiv:2401.14461](https://arxiv.org/abs/2401.14461))
 - **H. Zhang et al. (NeurIPS 2018)**: *Efficient Neural Network Robustness Certification with General Activation Functions* ([arXiv:1811.00866](https://arxiv.org/pdf/1811.00866))
 - **A. Madry et al. (ICLR 2018)**: *Towards Deep Learning Models Resistant to Adversarial Attacks* ([arXiv:1706.06083](https://arxiv.org/abs/1706.06083))
-

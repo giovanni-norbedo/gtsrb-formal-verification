@@ -4,8 +4,6 @@
 **Studente**: Giovanni Norbedo (Matricola SM3201486)  
 Università degli Studi di Trieste  
 
----
-
 ## Introduzione e obiettivi
 
 Le reti neurali addestrate con il classico criterio di minimizzazione del rischio empirico (ERM) ottengono spesso ottime percentuali sui dati di test, ma restano fragili di fronte agli attacchi avversari (*adversarial attacks*): piccole modifiche ai pixel, impercettibili per una persona, bastano a far sbagliare completamente la classificazione. In applicazioni critiche come la guida autonoma, dove un sistema di percezione visiva deve riconoscere i cartelli stradali in tempo reale, questo difetto rappresenta un rischio inaccettabile.
@@ -18,18 +16,7 @@ In questo progetto ho confrontato due reti neurali con identica architettura —
 
 ### Struttura del codice e variabili di controllo
 
-L'intera pipeline sperimentale è implementata in modo autocontenuto nel notebook [`main.ipynb`](main.ipynb). Per consentire sia l'ispezione immediata dei risultati caricando i pesi e i file JSON già calcolati, sia la riesecuzione completa da zero, all'inizio del file ho predisposto quattro variabili booleane:
-
-```python
-RETRAIN_STANDARD = False    # True: riaddestra il modello standard (30 epoche)
-RETRAIN_ROBUST = False      # True: riaddestra il modello robusto (mixed AT, 30 epoche)
-RETRAIN_PGD_CURVES = False  # True: ricalcola le curve empiriche PGD (1.250 immagini)
-RETRAIN_MARABOU = False     # True: riesegue la verifica formale Marabou SMT (250 campioni)
-```
-
-Tutte le figure presentate in questa relazione vengono generate e salvate ad alta risoluzione nella cartella `images/` direttamente dall'esecuzione delle celle del notebook.
-
----
+L'intera pipeline sperimentale è implementata in modo autocontenuto nel notebook [`main.ipynb`](main.ipynb). Per consentire sia l'ispezione immediata dei risultati caricando i pesi e i file JSON già calcolati, sia la riesecuzione completa da zero, all'inizio del notebook ho predisposto quattro variabili booleane di controllo (`RETRAIN_STANDARD`, `RETRAIN_ROBUST`, `RETRAIN_PGD_CURVES` e `RETRAIN_MARABOU`). Tutte le figure presentate in questa relazione vengono generate e salvate ad alta risoluzione nella cartella `images/` direttamente dall'esecuzione delle celle del notebook.
 
 ## Dataset e pre-elaborazione
 
@@ -37,7 +24,7 @@ Tutte le figure presentate in questa relazione vengono generate e salvate ad alt
 I dati originali provengono dai file ufficiali di GTSRB (`train.parquet` con 39.209 immagini e `test.parquet` con 12.630 immagini). Per isolare un compito realistico ma computazionalmente trattabile per un solver SMT esatto, ho selezionato cinque classi con un ruolo operativo e di sicurezza ben distinto nel traffico reale:
 
 | Indice | ID GTSRB | Nome segnale | Significato nel traffico |
-|:---:|:---:|---|---|
+|:--------:|:----------:|:--------------------------:|:--------------------------------------------------|
 | **0** | 14 | STOP | Arresto obbligatorio all'incrocio |
 | **1** | 13 | Precedenza | Obbligo di cedere il passo |
 | **2** | 1 | Limite 30 km/h | Zona residenziale o a velocità moderata |
@@ -54,8 +41,6 @@ Per scongiurare questo errore metodologico, ho strutturato il partizionamento a 
 ### Ritaglio della ROI e normalizzazione
 I cartelli stradali originali presentano risoluzioni eterogenee e porzioni rilevanti di sfondo. Per isolare il segnale e preparare l'input, ciascuna immagine viene anzitutto ritagliata sulle coordinate della *region of interest* (ROI) fornite nei metadati `[Roi.X1, Roi.Y1, Roi.X2, Roi.Y2]`, convertita in scala di grigi a canale singolo e ricampionata a una risoluzione fissa di $28 \times 28$ pixel tramite interpolazione bilineare. I valori di intensità vengono infine riscalati nell'intervallo continuo $[0.0, 1.0]$, traducendo ogni campione in un vettore compatto $x \in [0, 1]^{784}$.
 
----
-
 ## Architettura e integrazione con Marabou
 
 I verificatori formali SMT come Marabou operano nativamente su vincoli lineari a tratti (*piecewise-linear*). Funzioni di attivazione continue non lineari come sigmoide, tanh o GELU, così come operatori complessi di pooling, non possono essere gestite direttamente dal motore del simplesso e imporrebbero costose approssimazioni.
@@ -67,8 +52,6 @@ L'architettura comprende complessivamente 52.485 parametri addestrabili ($784 \t
 
 Un accorgimento fondamentale nell'integrazione è l'esportazione della rete in formato ONNX priva dello strato finale di softmax. Poiché la funzione softmax è strettamente monotona crescente, l'indice associato alla probabilità massima coincide esattamente con quello del logit non normalizzato: $\arg\max_i \text{softmax}(z)_i = \arg\max_i z_i$. Eliminando la componente esponenziale della softmax, Marabou può formalizzare l'obiettivo di violazione come un sistema di disequazioni strettamente lineari tra il logit della classe target errata $t$ e quello della classe corretta $y_0$:
 $$\text{logit}[t] - \text{logit}[y_0] \ge 10^{-4} \quad (t \ne y_0)$$
-
----
 
 ## Attacchi avversari e addestramento
 
@@ -89,15 +72,13 @@ Nel modello robusto ho invece implementato un protocollo di *mixed adversarial t
 $$\mathcal{L}_{\text{tot}} = 0.4 \cdot \mathcal{L}(f(x), y) + 0.6 \cdot \mathcal{L}(f(x_{\text{adv}}), y)$$
 Il dato avversario $x_{\text{adv}}$ viene generato online a ogni batch applicando un attacco PGD a 7 passi con raggio $\epsilon=0.05$ e passo $\alpha=0.012$. Questa formulazione bilanciata permette alla rete di sviluppare gradienti regolari e margini ampi senza sacrificare eccessivamente la precisione nominale sul dato non corrotto.
 
----
-
 ## Risultati sperimentali empirici
 
 ### Accuratezza sotto attacco PGD al variare di $\epsilon$ ($N=1.250$)
 Ho testato entrambi i modelli sull'intero test set indipendente di 1.250 immagini lungo una griglia crescente di raggi di perturbazione $\epsilon$, allineata con i valori utilizzati successivamente per la verifica formale:
 
 | Epsilon $\epsilon$ | Modello standard | Modello robusto | Vantaggio ($+\Delta$) |
-|:---:|:---:|:---:|:---:|
+|:------------------:|:----------------:|:---------------:|:---------------------:|
 | **0.00 (clean)** | 94.08% | 93.28% | -0.80% |
 | **0.01** | 76.64% | 88.24% | +11.60% |
 | **0.02** | 60.00% | 84.24% | +24.24% |
@@ -117,8 +98,6 @@ Sui campioni puliti entrambe le reti presentano una diagonale dominante ed equil
 
 Sotto attacco PGD con $\epsilon=0.05$, la struttura del modello standard subisce un degrado sistematico: la predizione corretta del segnale di STOP crolla, venendo scambiata nel 32% dei casi per un cartello di Precedenza e nel 24% dei casi per un Limite 50, accanto a una forte confusione simmetrica tra i cartelli di Limite 30 e Limite 50. Nel modello robusto la diagonale principale rimane invece nettamente dominante su ogni classe, riuscendo a identificare correttamente lo STOP nell'81% dei casi anche sotto il regime di attacco più aggressivo.
 
----
-
 ## Verifica formale con Marabou SMT
 
 ### Formulazione del problema di verifica
@@ -136,7 +115,7 @@ Affinché un'immagine possa dirsi formalmente certificata come robusta, richiedo
 Ho condotto la campagna di verifica formale su un campione bilanciato di 250 immagini di test (50 per classe, pari esattamente a un quinto dell'intero test set), parallelizzando l'esecuzione su 8 worker. Per preservare la rigorosa correttezza formale (*soundness*) del lower bound, ogni campione che incorre in un timeout su anche una sola classe concorrente viene catalogato come non certificato:
 
 | Raggio $\epsilon$ | Standard: certificata | Robusto: certificata | Guadagno netto | Timeout standard | Timeout robusto | Tempo medio (robusto) |
-|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+|:--------:|:--------------:|:--------------:|:------------:|:------------:|:------------:|:--------------:|
 | **0.00** | 94.8% | 94.0% | -0.8% | 0.0% | 0.0% | 0.00 s |
 | **0.01** | 76.4% | 88.8% | +12.4% | 0.4% | 0.0% | 0.04 s |
 | **0.02** | 58.0% | 82.4% | +24.4% | 3.6% | 4.0% | 0.09 s |
@@ -176,23 +155,17 @@ Per modellare questo scenario ho vincolato con Marabou una patch centrale di $6 
 
 Il responso della verifica evidenzia una netta separazione tra i due modelli. Sul modello standard Marabou conclude con `SAT` in appena 0,17 secondi, sintetizzando un adesivo specifico capace di ingannare completamente la rete verso Limite 30. Sul modello robusto il solver restituisce invece `UNSAT` in 1,80 secondi: questo risultato certifica con rigore matematico assoluto che, all'interno di quell'area centrale di $6 \times 6$ pixel, non esiste alcun possibile adesivo fisico (di qualunque colore, contrasto o sfumatura) in grado di far sbagliare il modello difeso.
 
----
-
 ## Limiti e sviluppi futuri
 
 L'impiego della certificazione formale esatta impone alcuni compromessi operativi. L'utilizzo di un perceptron multistrato su immagini in scala di grigi $28 \times 28$ è stata una decisione ponderata per garantire tempi di risoluzione SMT sostenibili. Nei sistemi di visione moderni si impiegano tuttavia reti convoluzionali profonde o vision transformer, architetture per le quali la verifica completa esatta risulta attualmente impraticabile a causa della crescita combinatoria associata al branching delle ReLU.
 
 Per estendere l'analisi a modelli di dimensioni maggiori, una direzione promettente consiste nell'adottare metodi di verifica incompleti basati su rilassamenti convessi (come CROWN o DeepPoly). Questi algoritmi operano in tempo polinomiale e, pur introducendo una quota fisiologica di falsi allarmi, garantiscono l'assenza assoluta di falsi negativi. Infine, sul piano dell'invarianza spaziale, i modelli densi risentono della mancanza di invarianza per traslazione o rotazione: in contesti applicativi reali, il ritaglio accurato della regione di interesse annotata e la normalizzazione geometrica uniforme rimangono passaggi preliminari indispensabili.
 
----
-
 ## Conclusioni
 
 L'indagine condotta dimostra che l'adversarial training non fornisce soltanto una protezione euristica contro specifiche strategie di attacco, ma modella la geometria interna della rete generando una robustezza intrinseca formalmente dimostrabile. Il modello difeso incrementa l'accuratezza empirica sotto PGD dal 25,52% al 68,72% a $\epsilon=0.05$ e raddoppia o triplica la quota di campioni matematicamente certificati da Marabou, raggiungendo il 73,2% a $\epsilon=0.03$ e il 51,6% a $\epsilon=0.05$.
 
 Al contempo, lo studio ribadisce perché la valutazione empirica sia insufficiente nelle applicazioni critiche: i metodi a gradiente possono lasciare inesplorate regioni vulnerabili che solo un solver deterministico è in grado di smascherare. Nonostante le sfide computazionali ne circoscrivano oggi l'adozione a componenti compatti o a verificatori rilassati, la certificazione formale si afferma come uno strumento irrinunciabile per validare la sicurezza dei sistemi percettivi neurali impiegati nella guida autonoma.
-
----
 
 ## Fonti
 
