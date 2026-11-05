@@ -4,6 +4,8 @@ Project for the **Introduction to Machine Learning** course (A.Y. 2025/2026), Un
 
 Comparison between a standard model (ERM) and a robust model (*adversarial training* with PGD) on 5 traffic sign classes from GTSRB (STOP, Yield/Priority, Speed Limit 30, Speed Limit 50, No Entry), evaluating empirical robustness under **PGD** attacks and exact formal certification using the SMT solver **Marabou**.
 
+![](images/controesempio.png)
+
 ## Documents
 
 - **Technical report**: [`ENGLISH_REPORT.md`](ENGLISH_REPORT.md)
@@ -24,4 +26,3 @@ The entire experimental pipeline (data inspection, training, PGD attacks, confus
 ```bash
 uv run jupyter notebook main.ipynb
 ```
-

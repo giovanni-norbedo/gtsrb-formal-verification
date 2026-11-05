@@ -6,6 +6,8 @@ Progetto per l'esame di **Introduction to Machine Learning** (A.A. 2025/2026), U
 
 Confronto tra modello standard (ERM) e modello robusto (*adversarial training* con PGD) su 5 classi di segnali stradali GTSRB (STOP, Precedenza, Limite 30, Limite 50, Divieto), valutando la robustezza empirica sotto attacco **PGD** e la certificazione formale esatta con il solver SMT **Marabou**.
 
+![](images/controesempio.png)
+
 ## Documenti
 
 - **Relazione tecnica**: [`REPORT.md`](REPORT.md)

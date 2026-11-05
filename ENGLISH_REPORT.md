@@ -65,7 +65,7 @@ $$784 \xrightarrow{\text{Linear}} 64 \xrightarrow{\text{ReLU}} 32 \xrightarrow{\
 
 The architecture has a total of 52,485 trainable parameters ($784 \times 64 + 64 = 50,240$; $64 \times 32 + 32 = 2,080$; $32 \times 5 + 5 = 165$) and incorporates 96 ReLU neurons ($64 + 32$). In the SMT framework, each ReLU neuron represents a binary choice between active and inactive states ($\text{ReLU}(z) = \max(0, z)$), inducing a combinatorial branching tree whose worst-case complexity is exponential in the number of unstable nodes.
 
-A key architectural design choice for solver integration is exporting the network to ONNX without the final Softmax operator. Because the Softmax function is strictly monotonically increasing, the index of the highest probability is identical to the index of the highest raw logit: $\operatorname{argmax}_i \text{softmax}(z)_i = \operatorname{argmax}_i z_i$. Eliminating the exponential term of Softmax allows Marabou to formulate the misclassification condition as a direct set of linear inequalities between the logit of an erroneous target class $t$ and the logit of the ground truth class $y_0$:
+A key architectural design choice for solver integration is exporting the network to ONNX without the final Softmax operator. Because the Softmax function is strictly monotonically increasing, the index of the highest probability is identical to the index of the highest raw logit: $\arg\max_i \text{softmax}(z)_i = \arg\max_i z_i$. Eliminating the exponential term of Softmax allows Marabou to formulate the misclassification condition as a direct set of linear inequalities between the logit of an erroneous target class $t$ and the logit of the ground truth class $y_0$:
 $$\text{logit}[t] - \text{logit}[y_0] \ge 10^{-4} \quad (t \ne y_0)$$
 
 ---
