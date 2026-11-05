@@ -146,6 +146,20 @@ Confronto tra le due strategie di addestramento:
 
 ---
 
+## Esempio di attacco PGD mirato
+
+Attacco con discesa di gradiente proiettata ($L_\infty$, $\epsilon=0.05$, target: Limite 30):
+
+<div class="img-box">
+  <img src="images/attacco.png" style="width: 88%; max-height: 200px;">
+</div>
+
+- **Originale pulito**: cartello di STOP nominale classificato correttamente.
+- **Pattern avversario**: perturbazione $L_\infty$ calcolata salendo lungo il gradiente della loss.
+- **Esito**: modifica quasi impercettibile che induce il **modello standard** a scambiare lo STOP per un **Limite 30 km/h**.
+
+---
+
 ## Valutazione empirica sotto attacco PGD
 
 Accuratezza sul test set (1.250 immagini) sotto attacco PGD a 15 passi al variare di $\epsilon$:
