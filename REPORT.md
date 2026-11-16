@@ -94,9 +94,9 @@ Per esaminare la natura degli errori indotti dagli attacchi, ho calcolato le mat
 
 ![Matrici di confusione normalizzate per riga sul test set ($N=1.250$). Confronto tra modello standard e robusto in condizioni nominali (clean) e sotto perturbazione PGD ($\epsilon=0.05$).](images/matrici.png)
 
-Sui campioni puliti entrambe le reti presentano una diagonale dominante ed equilibrata, con percentuali di corretto riconoscimento comprese tra il 91% e il 98% per tutte e cinque le categorie.
+Sui campioni puliti entrambe le reti presentano una diagonale dominante ed equilibrata, con percentuali di corretto riconoscimento comprese tra l'86% e il 100% per tutte e cinque le categorie.
 
-Sotto attacco PGD con $\epsilon=0.05$, la struttura del modello standard subisce un degrado sistematico: la predizione corretta del segnale di STOP crolla, venendo scambiata nel 32% dei casi per un cartello di Precedenza e nel 24% dei casi per un Limite 50, accanto a una forte confusione simmetrica tra i cartelli di Limite 30 e Limite 50. Nel modello robusto la diagonale principale rimane invece nettamente dominante su ogni classe, riuscendo a identificare correttamente lo STOP nell'81% dei casi anche sotto il regime di attacco più aggressivo.
+Sotto attacco PGD con $\epsilon=0.05$, la struttura del modello standard subisce un degrado sistematico: la predizione corretta del segnale di STOP crolla al 19%, venendo scambiata nel 68% dei casi per un cartello di Divieto, mentre i limiti di velocità 30 e 50 km/h si confondono pesantemente tra loro (il Limite 50 scende al 2%, scambiato nel 76% dei casi per Limite 30). Nel modello robusto la diagonale principale rimane invece nettamente dominante su gran parte delle classi, riuscendo a identificare correttamente lo STOP nel 70% dei casi e la Precedenza nel 90% anche sotto il regime di attacco più aggressivo.
 
 ## Verifica formale con Marabou SMT
 

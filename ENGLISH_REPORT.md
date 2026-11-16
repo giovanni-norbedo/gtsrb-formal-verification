@@ -94,9 +94,9 @@ To examine error patterns under adversarial pressure, I computed confusion matri
 
 ![Row-normalized confusion matrices on the test set ($N=1,250$). Comparison between Standard and Robust models under clean conditions and under PGD perturbation ($\epsilon=0.05$).](images/matrici.png)
 
-On clean samples, both networks exhibit a dominant, well-balanced diagonal, with per-class accuracies ranging between 91% and 98% across all five categories.
+On clean samples, both networks exhibit a dominant, well-balanced diagonal, with per-class accuracies ranging between 86% and 100% across all five categories.
 
-Under PGD at $\epsilon=0.05$, the standard model's classification structure degrades substantially: recognition of the STOP sign collapses, being misclassified as Yield in 32% of cases and as Speed Limit 50 in 24% of cases, alongside severe mutual confusion between Speed Limit 30 and Speed Limit 50. In contrast, the robust model maintains a dominant diagonal across all classes, correctly classifying the STOP sign 81% of the time even under the strongest attack.
+Under PGD at $\epsilon=0.05$, the standard model's classification structure degrades substantially: recognition of the STOP sign collapses to 19%, being misclassified as No Entry in 68% of cases, while Speed Limit 30 and Speed Limit 50 suffer severe mutual confusion (Speed Limit 50 drops to 2%, misclassified as Speed Limit 30 in 76% of cases). In contrast, the robust model maintains a much stronger diagonal across classes, correctly classifying the STOP sign 70% of the time and Yield 90% even under the strongest attack.
 
 ## Formal verification with Marabou SMT
 

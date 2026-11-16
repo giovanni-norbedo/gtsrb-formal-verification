@@ -5,3 +5,4 @@ data/*.parquet
 *.zip
 .DS_Store
 .vscode/
+tmp.md
